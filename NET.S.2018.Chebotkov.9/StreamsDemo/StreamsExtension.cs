@@ -27,12 +27,21 @@ namespace StreamsDemo
             {
                 using (FileStream fS = new FileStream(destinationPath, FileMode.OpenOrCreate))
                 {
-                    fileStream.Position = 0;
+                    /*fileStream.Position = 0;
                     while (fileStream.Position < fileStream.Length)
                     {
                         fS.WriteByte((byte)fileStream.ReadByte());
                         countOfbytes++;
                         fileStream.Position++;
+                    }*/
+
+                    // ↑this and this↓ are the same things...
+
+                    int b;
+                    while ((b = fileStream.ReadByte()) != -1)
+                    {
+                        countOfbytes++;
+                        fS.WriteByte((byte)b);
                     }
                 }
             }
@@ -83,19 +92,37 @@ namespace StreamsDemo
         public static int ByBlockCopy(string sourcePath, string destinationPath)
         {
             byte[] array;
+            int offset = 0;
+            int length = 1024;
+            //I should think about it. Something wrong with offset.
             InputValidation(sourcePath, destinationPath);
+
             using (FileStream fileStream = new FileStream(sourcePath, FileMode.Open))
             {
-                array = new byte[fileStream.Length];
-                fileStream.Read(array, 0, array.Length);
+                while (true)
+                {
+                    if (offset > fileStream.Length)
+                    {
+                        break;
+                    }
+                    else if (fileStream.Length - offset > -1 && offset + length > fileStream.Length)
+                    {
+                        length = (int)(fileStream.Length - offset);
+                    }
+                    
+                    array = new byte[length];
+                    fileStream.Read(array, offset, array.Length);
+
+                    using (FileStream fS = new FileStream(destinationPath, FileMode.OpenOrCreate))
+                    {
+                        fS.Write(array, offset, array.Length);
+                    }
+                   
+                    offset += length;
+                }
             }
 
-            using (FileStream fS = new FileStream(destinationPath, FileMode.OpenOrCreate))
-            {
-                fS.Write(array, 0, array.Length);
-            }
-
-            return array.Length;
+            return offset;
         }
 
         #endregion
